@@ -25,17 +25,18 @@ func main() {
 			"UniqueID": ["AccountID", "IPAddress"],
 			"Location": ["IPAddress"] }
 		}`)
-	fmt.Println(*dt)
+	fmt.Println(dt)
 
 
 	// 2. define a policy instance based on above lattice
 	// 
 	// ALLOW DataType TOP EXCEPT { DENY DataType IPAddress DataType AccountID }
 	//
-	policy := new(grok.Policy).Init(&([]grok.Lattice{ *dt }))
+	// policy := new(grok.Policy).Init(&([]grok.Lattice{ *dt }))
+	policy := grok.NewPolicy([]grok.Lattice { dt })
 	policy.ParsePolicy(`ALLOW DataType TOP
 						EXCEPT { DENY DataType IPAddress DataType AccountID }`)
-	fmt.Println(*policy)
+	fmt.Println(policy)
 
 
 	// case 1: 

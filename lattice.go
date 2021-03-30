@@ -83,17 +83,17 @@ func ParseJSON(m map[string]interface{}) Lattice {
 }
 
 
-func NewLattice(data string) *Lattice {
+func NewLattice(data string) Lattice {
 	var result map[string]interface{}
 	if err := json.Unmarshal([]byte(data), &result); err != nil {
 		fmt.Println(err)
 	}
 
 	lattice := ParseJSON(result)
-	return &lattice
+	return lattice
 }
 
-func NewLattices(data string) *[]Lattice {
+func NewLattices(data string) []Lattice {
 	var result []map[string]interface{}
 	if err := json.Unmarshal([]byte(data), &result); err != nil {
 		fmt.Println(err)
@@ -102,14 +102,14 @@ func NewLattices(data string) *[]Lattice {
 	for _, m := range result {
 		lattices = append(lattices, ParseJSON(m))
 	}
-	return &lattices
+	return lattices
 }
 
-func (l *Lattice) ToString() string {
+func (l Lattice) ToString() string {
 	return "Hello, Lattice"
 }
 
-func (l *Lattice) childrenOf(nodes []string) []string {
+func (l Lattice) childrenOf(nodes []string) []string {
 	ch := make([]string, 0)
 	for _, e := range l.Edges {
 		if contains(nodes, e.From) {
@@ -123,7 +123,7 @@ func (l *Lattice) childrenOf(nodes []string) []string {
 }
 
 // meet: greated lower bound, infimum, a ^ b
-func (l *Lattice) Meet(a, b string) string {
+func (l Lattice) Meet(a, b string) string {
 	nodea := []string{a}
 	nodeb := []string{b}
 	res := make([]string, 0)
@@ -146,7 +146,7 @@ func (l *Lattice) Meet(a, b string) string {
 	return res[0]
 }
 
-func (l *Lattice) parentsOf(nodes []string) []string {
+func (l Lattice) parentsOf(nodes []string) []string {
 	pa := make([]string, 0)
 	for _, e := range l.Edges {
 		if contains(nodes, e.To) && !contains(pa, e.From) {
@@ -160,7 +160,7 @@ func (l *Lattice) parentsOf(nodes []string) []string {
 }
 
 // join: least upper bound, supremum, a ∨ b
-func (l *Lattice) Join(a, b string) string {
+func (l Lattice) Join(a, b string) string {
 	nodea := []string{a}
 	nodeb := []string{b}
 	res := make([]string, 0)
@@ -183,7 +183,7 @@ func (l *Lattice) Join(a, b string) string {
 	return res[0]
 }
 
-func (l *Lattice) Precede(a, b string) bool {
+func (l Lattice) Precede(a, b string) bool {
 	pa := []string{b}
 
 	for {	
@@ -198,7 +198,7 @@ func (l *Lattice) Precede(a, b string) bool {
 }
 
 // privacy policy clause: ALLOW T[c] applies to annotation attributes
-func (l *Lattice) Allow(pattrs, aattrs []string) bool {
+func (l Lattice) Allow(pattrs, aattrs []string) bool {
 	for _, aattr := range aattrs {
 		allowed := false	
 		for _, pattr := range pattrs {
@@ -215,7 +215,7 @@ func (l *Lattice) Allow(pattrs, aattrs []string) bool {
 }
 
 // overlap of attributes in policy and annotations (Tₓ ⨅ T'ₓ from paper)
-func (l *Lattice) overlap(pattrs, aattrs []string) []string {
+func (l Lattice) overlap(pattrs, aattrs []string) []string {
 	res := make([]string, 0)
 	if len(aattrs) == 0 {
 		return res
@@ -235,7 +235,7 @@ func (l *Lattice) overlap(pattrs, aattrs []string) []string {
 }
 
 // privacy policy clause: DENY T[c] applies (⊥ ∉ Tₓ from paper)
-func (l *Lattice) Deny(pattrs, aattrs []string) bool {
+func (l Lattice) Deny(pattrs, aattrs []string) bool {
 	overlaps := l.overlap(pattrs, aattrs)
 	for _, ol := range overlaps {
 		if ol == "BOTTOM" {

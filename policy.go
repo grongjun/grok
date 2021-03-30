@@ -57,26 +57,39 @@ type Policy struct {
 	baseOn 		map[string]Lattice
 }
 
-func (p *Policy) Init(ls *[]Lattice) *Policy {
-	p.Clause = make([]pair, 0)
-	p.Excepts = make([]Policy, 0)
+// func (p *Policy) Init(ls *[]Lattice) *Policy {
+// 	p.Clause = make([]pair, 0)
+// 	p.Excepts = make([]Policy, 0)
 
-	p.baseOn = make(map[string]Lattice)
-	for _, l := range *ls {
-		p.baseOn[l.Name] = l
+// 	p.baseOn = make(map[string]Lattice)
+// 	for _, l := range *ls {
+// 		p.baseOn[l.Name] = l
+// 	}
+// 	return p
+// }
+
+func NewPolicy(ls []Lattice) Policy {
+	policy := new(Policy)
+	policy.Clause = make([]pair, 0)
+	policy.Excepts = make([]Policy, 0)
+
+	policy.baseOn = make(map[string]Lattice)
+	for _, l := range ls {
+		policy.baseOn[l.Name] = l
 	}
-	return p
+
+	return *policy
 }
 
 
-func (p *Policy) checkBaseOn() {
+func (p Policy) checkBaseOn() {
 	if p.baseOn == nil || len(p.baseOn) == 0 {
 		fmt.Println("policy has no lattices")
 	}
 }
 
 // ParsePolicy: parse a policy string
-func (p *Policy) ParsePolicy(data string) *Policy {
+func (p Policy) ParsePolicy(data string) Policy {
 	p.checkBaseOn()
 
 	var s scanner.Scanner
@@ -97,7 +110,7 @@ func (p *Policy) ParsePolicy(data string) *Policy {
 	return p
 }
 
-func (p *Policy) parsePolicyTokens(ts []string) Policy {
+func (p Policy) parsePolicyTokens(ts []string) Policy {
 	policy := new(Policy)
 	policy.baseOn = p.baseOn
 	policy.Excepts = make([]Policy, 0)
@@ -160,7 +173,7 @@ func (p *Policy) parsePolicyTokens(ts []string) Policy {
 }
 
 
-func (p *Policy) ParseClause(str string) Clause {
+func (p Policy) ParseClause(str string) Clause {
 	p.checkBaseOn()
 
 	var s scanner.Scanner
@@ -179,12 +192,12 @@ func (p *Policy) ParseClause(str string) Clause {
 }
 
 
-func (p *Policy) ParseAnnotation(str string) Annotation {
+func (p Policy) ParseAnnotation(str string) Annotation {
 	return Annotation(p.ParseClause(str))
 }
 
 
-func (p *Policy) parseClauseTokens(ts []string) Clause {
+func (p Policy) parseClauseTokens(ts []string) Clause {
 	var clause Clause = make(Clause, 0)
 	var currLa string
 	for _, tt := range ts {
@@ -213,8 +226,7 @@ func (p *Policy) parseClauseTokens(ts []string) Clause {
 // true means annotation is allowed by the policy
 // false means annotation is denied by the policy
 // note: refer to inferences rules in page 7
-func (p *Policy) ApplyOn(an Annotation) bool {
-	// 
+func (p Policy) ApplyOn(an Annotation) bool {
 	if p.Mode {
 		for attr, l := range p.baseOn {
 			v := an.ValuesOf(attr)
@@ -254,7 +266,7 @@ func (p *Policy) ApplyOn(an Annotation) bool {
 }
 
 
-func (p *Policy) LatticeName(s string) (string, error) {
+func (p Policy) LatticeName(s string) (string, error) {
 	for _, l := range p.baseOn {
 		if s == l.Name {
 			return l.Name, nil
@@ -263,7 +275,7 @@ func (p *Policy) LatticeName(s string) (string, error) {
 	return "", errors.New(fmt.Sprintf("%s is not a valid lattice name", s))
 }
 
-func (p *Policy) LatticeValue(s string, name string) (string, error) {
+func (p Policy) LatticeValue(s string, name string) (string, error) {
 	for _, e := range p.baseOn[name].Edges {
 		if s == e.From || s == e.To {
 			return s, nil

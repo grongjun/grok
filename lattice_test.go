@@ -43,12 +43,12 @@ func TestNewLattices(t *testing.T) {
 		value 	interface{}
 		want 	interface{}
 	} {
-		{"len(lattices)", 			len(*lattices), 2},
-		{"lattices[0].Name", 		(*lattices)[0].Name, "DataType"},
-		{"len(lattices[0].Edges)", 	len((*lattices)[0].Edges), 3},
+		{"len(lattices)", 			len(lattices), 2},
+		{"lattices[0].Name", 		(lattices)[0].Name, "DataType"},
+		{"len(lattices[0].Edges)", 	len((lattices)[0].Edges), 3},
 
-		{"lattices[1].Name", 		(*lattices)[1].Name, "Purpose"},
-		{"len(lattices[1].Edges)", 	len((*lattices)[1].Edges), 2},
+		{"lattices[1].Name", 		(lattices)[1].Name, "Purpose"},
+		{"len(lattices[1].Edges)", 	len((lattices)[1].Edges), 2},
 	}
 	for _, c := range cases {
 		if c.value != c.want {

@@ -6,14 +6,14 @@ import (
 
 
 var lattices []Lattice = []Lattice{
-	*(NewLattice(`{ "name": "DataType",
+	NewLattice(`{ "name": "DataType",
 		"edges": {
 			"UniqueID": ["AccountID", "IPAddress"],
 			"Location": ["IPAddress"] }
-		}`)),
-	*(NewLattice(`{ "name": "Purpose", "edges": { "Sharing": []} }`)),
+		}`),
+	NewLattice(`{ "name": "Purpose", "edges": { "Sharing": []} }`),
 }
-var policy *Policy = new(Policy).Init(&lattices)
+var policy = NewPolicy(lattices)
 
 
 func TestParseClause(t *testing.T) {
