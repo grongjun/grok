@@ -7,6 +7,8 @@ A partial implementation of Microsoft paper [Bootstrapping Privacy Compliance in
 + lattice
     - definition
     - operations: meet, join
-+ reference rules
++ policy
+    - definition, and parse
+    - comply by reference rules
 + ...
 
