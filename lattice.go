@@ -82,10 +82,10 @@ func ParseJSON(m map[string]interface{}) Lattice {
 	return Lattice{name, es}
 }
 
-
-func NewLattice(data string) Lattice {
+// NewLattice create a Lattice instance from a string
+func NewLattice(str string) Lattice {
 	var result map[string]interface{}
-	if err := json.Unmarshal([]byte(data), &result); err != nil {
+	if err := json.Unmarshal([]byte(str), &result); err != nil {
 		fmt.Println(err)
 	}
 
@@ -93,9 +93,11 @@ func NewLattice(data string) Lattice {
 	return lattice
 }
 
-func NewLattices(data string) []Lattice {
+
+// NewLattices create a Lattice array from a string
+func NewLattices(str string) []Lattice {
 	var result []map[string]interface{}
-	if err := json.Unmarshal([]byte(data), &result); err != nil {
+	if err := json.Unmarshal([]byte(str), &result); err != nil {
 		fmt.Println(err)
 	}
 	lattices := make([]Lattice, 0)
@@ -122,7 +124,7 @@ func (l Lattice) childrenOf(nodes []string) []string {
 	return ch
 }
 
-// meet: greated lower bound, infimum, a ^ b
+// Meet: greated lower bound, infimum, a ^ b
 func (l Lattice) Meet(a, b string) string {
 	nodea := []string{a}
 	nodeb := []string{b}
@@ -159,12 +161,12 @@ func (l Lattice) parentsOf(nodes []string) []string {
 	return pa
 }
 
-// join: least upper bound, supremum, a ∨ b
+// Join: least upper bound, supremum, a ∨ b
 func (l Lattice) Join(a, b string) string {
 	nodea := []string{a}
 	nodeb := []string{b}
 	res := make([]string, 0)
-	
+
 	for len(res) != 1 {
 		if len(res) != 0 {
 			res = res[0:0]
@@ -197,7 +199,7 @@ func (l Lattice) Precede(a, b string) bool {
 	}
 }
 
-// privacy policy clause: ALLOW T[c] applies to annotation attributes
+// Allow policy clause T[c] applies to annotation attributes
 func (l Lattice) Allow(pattrs, aattrs []string) bool {
 	for _, aattr := range aattrs {
 		allowed := false	
@@ -234,7 +236,7 @@ func (l Lattice) overlap(pattrs, aattrs []string) []string {
 	return res
 }
 
-// privacy policy clause: DENY T[c] applies (⊥ ∉ Tₓ from paper)
+// Deny policy clause T[c] applies (⊥ ∉ Tₓ from paper)
 func (l Lattice) Deny(pattrs, aattrs []string) bool {
 	overlaps := l.overlap(pattrs, aattrs)
 	for _, ol := range overlaps {

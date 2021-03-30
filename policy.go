@@ -57,17 +57,7 @@ type Policy struct {
 	baseOn 		map[string]Lattice
 }
 
-// func (p *Policy) Init(ls *[]Lattice) *Policy {
-// 	p.Clause = make([]pair, 0)
-// 	p.Excepts = make([]Policy, 0)
-
-// 	p.baseOn = make(map[string]Lattice)
-// 	for _, l := range *ls {
-// 		p.baseOn[l.Name] = l
-// 	}
-// 	return p
-// }
-
+// NewPolicy creates a Policy instance based on some lattices.
 func NewPolicy(ls []Lattice) Policy {
 	policy := new(Policy)
 	policy.Clause = make([]pair, 0)
@@ -88,12 +78,12 @@ func (p Policy) checkBaseOn() {
 	}
 }
 
-// ParsePolicy: parse a policy string
-func (p Policy) ParsePolicy(data string) Policy {
+// ParsePolicy parses a policy string
+func (p Policy) ParsePolicy(pstr string) Policy {
 	p.checkBaseOn()
 
 	var s scanner.Scanner
-	s.Init(strings.NewReader(data))
+	s.Init(strings.NewReader(pstr))
 
 	// policy is a nested structure
 	tokens := make([]string, 0)
