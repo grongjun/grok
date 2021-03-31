@@ -19,27 +19,27 @@ type Lattice struct {
 // parse a string to lattice structure
 // the input string should follow below format
 // {
-// 	"name": "DataType"
+//  "name": "DataType"
 //  "edges": {
-// 		"UniqueID": ["AccountID", "IPAddress"],
-// 		"Location": ["IPAddress"]
-//	}
+//      "UniqueID": ["AccountID", "IPAddress"],
+//      "Location": ["IPAddress"]
+//  }
 // }
 // it will generate a lattice as:
-// 				 TOP
-//				/	\
-// 		  UniqueID	Location
-// 			/   \     /
-// 	AccountID 	IPAddress
-//			\	  /
-//			BOTTOM
+//               TOP
+//              /   \
+//       UniqueID   Location
+//           /   \    /
+//   AccountID   IPAddress
+//          \     /
+//          BOTTOM
 
 func ParseJSON(m map[string]interface{}) Lattice {
 	name := m["name"].(string)
 	edges := m["edges"].(map[string]interface{})
 
 	var es []Edge
-	sps := make([]string, 0)	// single-points in JSON defintions
+	sps := make([]string, 0)     // single-points in JSON defintions
 	for ef, ets := range edges { // edge_from, edge_tos
 		if len(ets.([]interface{})) == 0 {
 			sps = append(sps, ef)
@@ -62,7 +62,7 @@ func ParseJSON(m map[string]interface{}) Lattice {
 			tos = append(tos, edge.To)
 		}
 	}
-	
+
 	for _, f := range froms {
 		if !contains(tos, f) {
 			es = append(es, Edge{"TOP", f})
@@ -92,7 +92,6 @@ func NewLattice(str string) Lattice {
 	lattice := ParseJSON(result)
 	return lattice
 }
-
 
 // NewLattices create a Lattice array from a string
 func NewLattices(str string) []Lattice {
@@ -129,7 +128,7 @@ func (l Lattice) Meet(a, b string) string {
 	nodea := []string{a}
 	nodeb := []string{b}
 	res := make([]string, 0)
-	
+
 	for len(res) != 1 {
 		if len(res) != 0 {
 			res = res[0:0]
@@ -188,7 +187,7 @@ func (l Lattice) Join(a, b string) string {
 func (l Lattice) Precede(a, b string) bool {
 	pa := []string{b}
 
-	for {	
+	for {
 		if len(pa) == 1 && pa[0] == "BOTTOM" {
 			return false
 		} else if contains(pa, a) {
@@ -202,7 +201,7 @@ func (l Lattice) Precede(a, b string) bool {
 // Allow policy clause T[c] applies to annotation attributes
 func (l Lattice) Allow(pattrs, aattrs []string) bool {
 	for _, aattr := range aattrs {
-		allowed := false	
+		allowed := false
 		for _, pattr := range pattrs {
 			if l.Precede(aattr, pattr) {
 				allowed = true
@@ -247,7 +246,6 @@ func (l Lattice) Deny(pattrs, aattrs []string) bool {
 	return true
 }
 
-
 func contains(arr []string, str string) bool {
 	for _, e := range arr {
 		if e == str {
@@ -256,5 +254,3 @@ func contains(arr []string, str string) bool {
 	}
 	return false
 }
-
-

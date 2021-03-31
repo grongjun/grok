@@ -10,22 +10,25 @@ import (
 type PolicyMode bool
 
 const (
-	ALLOW	PolicyMode = true
-	DENY	PolicyMode = false
+	ALLOW PolicyMode = true
+	DENY  PolicyMode = false
 )
 
 func (pm PolicyMode) String() string {
-	switch (pm) {
-	case ALLOW: return "Allow"
-	case DENY:	return "Deny"
-	default: panic("invalid policy mode")
+	switch pm {
+	case ALLOW:
+		return "Allow"
+	case DENY:
+		return "Deny"
+	default:
+		panic("invalid policy mode")
 	}
 }
 
 // pair: exmaple: DataType IPAddrees
 type pair struct {
-	name 	string 	// attribute name (i.e. lattice)
-	value 	string 	// attribute value (picked from lattice elements)
+	name  string // attribute name (i.e. lattice)
+	value string // attribute value (picked from lattice elements)
 }
 
 // Clause: there may be duplicate attributes in one policy clause
@@ -48,13 +51,12 @@ func (an Annotation) ValuesOf(attr string) []string {
 	return Clause(an).ValuesOf(attr)
 }
 
-
 // policy definition based on lattice definitions
 type Policy struct {
-	Mode 		PolicyMode
+	Mode PolicyMode
 	Clause
-	Excepts		[]Policy
-	baseOn 		map[string]Lattice
+	Excepts []Policy
+	baseOn  map[string]Lattice
 }
 
 // NewPolicy creates a Policy instance based on some lattices.
@@ -70,7 +72,6 @@ func NewPolicy(ls []Lattice) Policy {
 
 	return *policy
 }
-
 
 func (p Policy) checkBaseOn() {
 	if p.baseOn == nil || len(p.baseOn) == 0 {
@@ -138,12 +139,12 @@ func (p Policy) parsePolicyTokens(ts []string) Policy {
 		}
 		depth := 0
 		i = i + 3 // skip the { and mode
-		for i < n -1 {
+		for i < n-1 {
 			if ts[i] == "{" {
-				depth ++
+				depth++
 			}
 			if ts[i] == "}" {
-				depth --
+				depth--
 			}
 			// first condition: for multiple exceptions
 			// second condition: for only one exception
@@ -162,30 +163,27 @@ func (p Policy) parsePolicyTokens(ts []string) Policy {
 	return *policy
 }
 
-
 func (p Policy) ParseClause(str string) Clause {
 	p.checkBaseOn()
 
 	var s scanner.Scanner
 	s.Init(strings.NewReader(str))
-	
+
 	tokens := make([]string, 0)
 	for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
 		tt := s.TokenText()
 		tokens = append(tokens, tt)
 	}
-	if len(tokens) % 2 != 0 {
+	if len(tokens)%2 != 0 {
 		fmt.Println("clause is composed of name-value pairs.")
 	}
 
 	return p.parseClauseTokens(tokens)
 }
 
-
 func (p Policy) ParseAnnotation(str string) Annotation {
 	return Annotation(p.ParseClause(str))
 }
-
 
 func (p Policy) parseClauseTokens(ts []string) Clause {
 	var clause Clause = make(Clause, 0)
@@ -210,7 +208,6 @@ func (p Policy) parseClauseTokens(ts []string) Clause {
 	}
 	return clause
 }
-
 
 // ApplyOn: whether a policy can apply on an annotation
 // true means annotation is allowed by the policy
@@ -243,7 +240,7 @@ func (p Policy) ApplyOn(an Annotation) bool {
 		for attr, l := range p.baseOn {
 			vs := l.overlap(an.ValuesOf(attr), p.Clause.ValuesOf(attr))
 			for _, v := range vs {
-				overlap = append(overlap, pair{attr, v})	
+				overlap = append(overlap, pair{attr, v})
 			}
 		}
 		for _, ex := range p.Excepts {
@@ -254,7 +251,6 @@ func (p Policy) ApplyOn(an Annotation) bool {
 		return false
 	}
 }
-
 
 func (p Policy) LatticeName(s string) (string, error) {
 	for _, l := range p.baseOn {
@@ -273,5 +269,3 @@ func (p Policy) LatticeValue(s string, name string) (string, error) {
 	}
 	return "", errors.New(fmt.Sprintf("%s is not a valid value in lattice %s", s, name))
 }
-
-

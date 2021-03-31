@@ -1,24 +1,26 @@
 package main
 
-import "fmt"
-import "github.com/grongjun/grok"
+import (
+	"fmt"
+	"github.com/grongjun/grok"
+)
 
 func main() {
 	// Example in section E "Formal Semantics"
-	// 
+	//
 	// Policy:
-	// Allows everything except for the use of IPAddress and AccountID in the same program. 
-	// 
+	// Allows everything except for the use of IPAddress and AccountID in the same program.
+	//
 
 	// 1. define a DataType lattice as following structure (part of Fig. 4 (a)).
 	//
-	// 				 TOP
-	//				/	\
-	// 		  UniqueID	Location
-	// 			/   \     /
-	// 	AccountID 	IPAddress
-	//			\	  /
-	//			BOTTOM
+	//               TOP
+	//              /   \
+	//       UniqueID  Location
+	//           /   \    /
+	//  AccountID   IPAddress
+	//          \     /
+	//          BOTTOM
 	//
 	dt := grok.NewLattice(`{ "name": "DataType",
 		"edges": {
@@ -27,27 +29,23 @@ func main() {
 		}`)
 	fmt.Println(dt)
 
-
 	// 2. define a policy instance based on above lattice
-	// 
+	//
 	// ALLOW DataType TOP EXCEPT { DENY DataType IPAddress DataType AccountID }
 	//
-	policy := grok.NewPolicy([]grok.Lattice { dt })
+	policy := grok.NewPolicy([]grok.Lattice{dt})
 	policy.ParsePolicy(`ALLOW DataType TOP
 		EXCEPT { DENY DataType IPAddress DataType AccountID }`)
 	fmt.Println(policy)
 
-
-	// case 1: 
+	// case 1:
 	// a graph node with label "DataType IPAddress", will be allowed by the policy
 	r1 := policy.ApplyOn(policy.ParseAnnotation(`DataType IPAddress`))
-	fmt.Println(r1)  	// true
-
+	fmt.Println(r1) // true
 
 	// case 2
 	// a graph node with label "DataType IPAddress DataType AccountID", will be denied by the policy
 	r2 := policy.ApplyOn(policy.ParseAnnotation(`DataType IPAddress DataType AccountID`))
-	fmt.Println(r2) 	// false
+	fmt.Println(r2) // false
 
 }
-

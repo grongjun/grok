@@ -17,11 +17,11 @@ var lattice = NewLattice(
 
 func TestNewLattice(t *testing.T) {
 	cases := []struct {
-		name 	string
-		value	interface{}
-		want	interface{}
-	} {
-		{"name", lattice.Name, "DataType"},
+		name  string
+		value interface{}
+		want  interface{}
+	}{
+		{"name",       lattice.Name,       "DataType"},
 		{"len(edges)", len(lattice.Edges), 7},
 	}
 	for _, c := range cases {
@@ -31,24 +31,23 @@ func TestNewLattice(t *testing.T) {
 	}
 }
 
-
 func TestNewLattices(t *testing.T) {
 	var lattices = NewLattices(
-	`[
+		`[
 		{"name": "DataType", "edges": { "Location": ["IPAddress"]}},
 		{"name": "Purpose", "edges": { "Sharing": [] } }
 	]`)
 	cases := []struct {
-		name 	string
-		value 	interface{}
-		want 	interface{}
-	} {
-		{"len(lattices)", 			len(lattices), 2},
-		{"lattices[0].Name", 		(lattices)[0].Name, "DataType"},
-		{"len(lattices[0].Edges)", 	len((lattices)[0].Edges), 3},
+		name  string
+		value interface{}
+		want  interface{}
+	}{
+		{"len(lattices)",          len(lattices),            2},
+		{"lattices[0].Name",       (lattices)[0].Name,       "DataType"},
+		{"len(lattices[0].Edges)", len((lattices)[0].Edges), 3},
 
-		{"lattices[1].Name", 		(lattices)[1].Name, "Purpose"},
-		{"len(lattices[1].Edges)", 	len((lattices)[1].Edges), 2},
+		{"lattices[1].Name",       (lattices)[1].Name,       "Purpose"},
+		{"len(lattices[1].Edges)", len((lattices)[1].Edges), 2},
 	}
 	for _, c := range cases {
 		if c.value != c.want {
@@ -57,13 +56,12 @@ func TestNewLattices(t *testing.T) {
 	}
 }
 
-
 func TestChildrenOf(t *testing.T) {
 	cases := []struct {
-		parents		[]string
-		children 	[]string
-	} {
-		{[]string{"TOP"}, []string{"Location", "UniqueID"}},
+		parents  []string
+		children []string
+	}{
+		{[]string{"TOP"},      []string{"Location", "UniqueID"}},
 		{[]string{"Location"}, []string{"IPAddress"}},
 	}
 	for _, c := range cases {
@@ -76,12 +74,12 @@ func TestChildrenOf(t *testing.T) {
 
 func TestMeet(t *testing.T) {
 	cases := []struct {
-		a 		string
-		b 		string
-		want	string
-	} {
+		a    string
+		b    string
+		want string
+	}{
 		{"AccountID", "UniqueID", "AccountID"},
-		{"AccountID", "TOP", "AccountID"},
+		{"AccountID", "TOP",      "AccountID"},
 		{"AccountID", "Location", "BOTTOM"},
 	}
 	for _, c := range cases {
@@ -92,13 +90,12 @@ func TestMeet(t *testing.T) {
 	}
 }
 
-
 func TestParentsOf(t *testing.T) {
 	cases := []struct {
-		parents		[]string
-		children 	[]string
-	} {
-		{[]string{"TOP"}, []string{"Location", "UniqueID"}},
+		parents  []string
+		children []string
+	}{
+		{[]string{"TOP"},                  []string{"Location", "UniqueID"}},
 		{[]string{"Location", "UniqueID"}, []string{"IPAddress"}},
 	}
 	for _, c := range cases {
@@ -111,12 +108,12 @@ func TestParentsOf(t *testing.T) {
 
 func TestJoin(t *testing.T) {
 	cases := []struct {
-		a 		string
-		b 		string
-		want	string
-	} {
+		a    string
+		b    string
+		want string
+	}{
 		{"AccountID", "UniqueID", "UniqueID"},
-		{"AccountID", "TOP", "TOP"},
+		{"AccountID", "TOP",      "TOP"},
 		{"AccountID", "Location", "TOP"},
 	}
 	for _, c := range cases {
@@ -129,13 +126,13 @@ func TestJoin(t *testing.T) {
 
 func TestPrecede(t *testing.T) {
 	cases := []struct {
-		a 		string
-		b 		string
-		want 	bool
-	} {
+		a    string
+		b    string
+		want bool
+	}{
 		{"AccountID", "Location", false},
 		{"AccountID", "UniqueID", true},
-		{"AccountID", "TOP", true},
+		{"AccountID", "TOP",      true},
 	}
 	for _, c := range cases {
 		got := lattice.Precede(c.a, c.b)
@@ -145,15 +142,14 @@ func TestPrecede(t *testing.T) {
 	}
 }
 
-
 func TestAllow(t *testing.T) {
 	cases := []struct {
-		pattrs	[]string
-		aattrs	[]string
-		want	bool
-	} {
+		pattrs []string
+		aattrs []string
+		want   bool
+	}{
 		{[]string{"IPAddress", "AccountID"}, []string{"IPAddress"}, true},
-		{[]string{"IPAddress"}, []string{"TOP"}, false},
+		{[]string{"IPAddress"},              []string{"TOP"},       false},
 	}
 	for _, c := range cases {
 		got := lattice.Allow(c.pattrs, c.aattrs)
@@ -165,13 +161,13 @@ func TestAllow(t *testing.T) {
 
 func TestOverlap(t *testing.T) {
 	cases := []struct {
-		pattrs 	[]string
-		aattrs 	[]string
-		want	[]string
-	} {
-		{[]string{"IPAddress", "AccountID"}, []string{"IPAddress"}, []string{"IPAddress", "BOTTOM"}},
+		pattrs []string
+		aattrs []string
+		want   []string
+	}{
+		{[]string{"IPAddress", "AccountID"}, []string{"IPAddress"},              []string{"IPAddress", "BOTTOM"}},
 		{[]string{"IPAddress", "AccountID"}, []string{"IPAddress", "AccountID"}, []string{"IPAddress", "AccountID"}},
-		{[]string{"IPAddress"}, []string{"IPAddress", "AccountID"}, []string{"IPAddress"}},
+		{[]string{"IPAddress"},              []string{"IPAddress", "AccountID"}, []string{"IPAddress"}},
 	}
 	for _, c := range cases {
 		got := lattice.overlap(c.pattrs, c.aattrs)
@@ -183,11 +179,11 @@ func TestOverlap(t *testing.T) {
 
 func TestDeny(t *testing.T) {
 	cases := []struct {
-		pattrs 	[]string
-		aattrs	[]string
-		want 	bool
-	} {
-		{[]string{"IPAddress", "AccountID"}, []string{"IPAddress"}, false},
+		pattrs []string
+		aattrs []string
+		want   bool
+	}{
+		{[]string{"IPAddress", "AccountID"}, []string{"IPAddress"},              false},
 		{[]string{"IPAddress", "AccountID"}, []string{"IPAddress", "AccountID"}, true},
 	}
 	for _, c := range cases {
@@ -198,16 +194,15 @@ func TestDeny(t *testing.T) {
 	}
 }
 
-
 func TestContains(t *testing.T) {
 	cases := []struct {
-		arr 	[]string
-		str 	string
-		want	bool
-	} {
+		arr  []string
+		str  string
+		want bool
+	}{
 		{[]string{"Hello", "World"}, "World", true},
 		{[]string{"Hello", "World"}, "world", false},
-		{[]string{}, "world", false},
+		{[]string{},                 "world", false},
 	}
 	for _, c := range cases {
 		got := contains(c.arr, c.str)
@@ -216,7 +211,6 @@ func TestContains(t *testing.T) {
 		}
 	}
 }
-
 
 func equals(a []string, b []string) bool {
 	if (a == nil) != (b == nil) {
@@ -232,7 +226,6 @@ func equals(a []string, b []string) bool {
 	}
 	return true
 }
-
 
 func setup() {
 	fmt.Println("setup")
