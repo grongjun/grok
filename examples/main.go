@@ -33,7 +33,7 @@ func main() {
 	//
 	// ALLOW DataType TOP EXCEPT { DENY DataType IPAddress DataType AccountID }
 	//
-	policy := grok.NewPolicy([]grok.Lattice{dt})
+	policy := grok.NewPolicy([]*grok.Lattice{dt})
 	policy.ParsePolicy(`ALLOW DataType TOP
 		EXCEPT { DENY DataType IPAddress DataType AccountID }`)
 	fmt.Println(policy)

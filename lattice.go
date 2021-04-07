@@ -34,27 +34,52 @@ type Lattice struct {
 //          \     /
 //          BOTTOM
 
-func ParseJSON(m map[string]interface{}) Lattice {
-	name := m["name"].(string)
-	edges := m["edges"].(map[string]interface{})
+// NewLattice create a Lattice instance from a string
+func NewLattice(str string) *Lattice {
+	var result map[string]interface{}
+	if err := json.Unmarshal([]byte(str), &result); err != nil {
+		fmt.Println(err)
+	}
 
-	var es []Edge
-	sps := make([]string, 0)     // single-points in JSON defintions
-	for ef, ets := range edges { // edge_from, edge_tos
-		if len(ets.([]interface{})) == 0 {
-			sps = append(sps, ef)
+	lattice := parse(result)
+	return &lattice
+}
+
+// NewLattices create a Lattice array from a string
+func NewLattices(str string) []*Lattice {
+	var result []map[string]interface{}
+	if err := json.Unmarshal([]byte(str), &result); err != nil {
+		fmt.Println(err)
+	}
+	lattices := make([]*Lattice, 0)
+	for _, m := range result {
+		l := parse(m)
+		lattices = append(lattices, &l)
+	}
+	return lattices
+}
+
+// parse a map structure (key-value pair from JSON) to a lattice
+func parse(m map[string]interface{}) Lattice {
+	name := m["name"].(string)
+	_edgeMap := m["edges"].(map[string]interface{})
+
+	var edges []Edge
+	ses := make([]string, 0)     // singleton elements in JSON defintions
+	for from, tos := range _edgeMap { // edge_from, edge_tos
+		if len(tos.([]interface{})) == 0 {
+			ses = append(ses, from)
 			continue
 		}
-		for _, to := range ets.([]interface{}) {
-			// fmt.Printf("%s ==> %s %T\n", ef, to, to)
-			es = append(es, Edge{ef, to.(string)})
+		for _, to := range tos.([]interface{}) {
+			edges = append(edges, Edge{from, to.(string)})
 		}
 	}
 
 	// append edges from TOP, and edges to BOTTOM
 	froms := make([]string, 0)
 	tos := make([]string, 0)
-	for _, edge := range es {
+	for _, edge := range edges {
 		if !contains(froms, edge.From) {
 			froms = append(froms, edge.From)
 		}
@@ -65,52 +90,30 @@ func ParseJSON(m map[string]interface{}) Lattice {
 
 	for _, f := range froms {
 		if !contains(tos, f) {
-			es = append(es, Edge{"TOP", f})
+			edges = append(edges, Edge{"TOP", f})
 		}
 	}
 	for _, t := range tos {
 		if !contains(froms, t) {
-			es = append(es, Edge{t, "BOTTOM"})
+			edges = append(edges, Edge{t, "BOTTOM"})
 		}
 	}
 
-	for _, sp := range sps {
-		es = append(es, Edge{"TOP", sp})
-		es = append(es, Edge{sp, "BOTTOM"})
+	// append edges of singleton elements to 
+	for _, se := range ses {
+		edges = append(edges, Edge{"TOP", se})
+		edges = append(edges, Edge{se, "BOTTOM"})
 	}
 
-	return Lattice{name, es}
+	return Lattice{name, edges}
 }
 
-// NewLattice create a Lattice instance from a string
-func NewLattice(str string) Lattice {
-	var result map[string]interface{}
-	if err := json.Unmarshal([]byte(str), &result); err != nil {
-		fmt.Println(err)
-	}
 
-	lattice := ParseJSON(result)
-	return lattice
-}
-
-// NewLattices create a Lattice array from a string
-func NewLattices(str string) []Lattice {
-	var result []map[string]interface{}
-	if err := json.Unmarshal([]byte(str), &result); err != nil {
-		fmt.Println(err)
-	}
-	lattices := make([]Lattice, 0)
-	for _, m := range result {
-		lattices = append(lattices, ParseJSON(m))
-	}
-	return lattices
-}
-
-func (l Lattice) ToString() string {
+func (l *Lattice) ToString() string {
 	return "Hello, Lattice"
 }
 
-func (l Lattice) childrenOf(nodes []string) []string {
+func (l *Lattice) childrenOf(nodes []string) []string {
 	ch := make([]string, 0)
 	for _, e := range l.Edges {
 		if contains(nodes, e.From) {
@@ -124,7 +127,7 @@ func (l Lattice) childrenOf(nodes []string) []string {
 }
 
 // Meet: greated lower bound, infimum, a ^ b
-func (l Lattice) Meet(a, b string) string {
+func (l *Lattice) Meet(a, b string) string {
 	nodea := []string{a}
 	nodeb := []string{b}
 	res := make([]string, 0)
@@ -147,7 +150,7 @@ func (l Lattice) Meet(a, b string) string {
 	return res[0]
 }
 
-func (l Lattice) parentsOf(nodes []string) []string {
+func (l *Lattice) parentsOf(nodes []string) []string {
 	pa := make([]string, 0)
 	for _, e := range l.Edges {
 		if contains(nodes, e.To) && !contains(pa, e.From) {
@@ -161,7 +164,7 @@ func (l Lattice) parentsOf(nodes []string) []string {
 }
 
 // Join: least upper bound, supremum, a ∨ b
-func (l Lattice) Join(a, b string) string {
+func (l *Lattice) Join(a, b string) string {
 	nodea := []string{a}
 	nodeb := []string{b}
 	res := make([]string, 0)
@@ -184,7 +187,7 @@ func (l Lattice) Join(a, b string) string {
 	return res[0]
 }
 
-func (l Lattice) Precede(a, b string) bool {
+func (l *Lattice) Precede(a, b string) bool {
 	pa := []string{b}
 
 	for {
@@ -199,7 +202,7 @@ func (l Lattice) Precede(a, b string) bool {
 }
 
 // Allow policy clause T[c] applies to annotation attributes
-func (l Lattice) Allow(pattrs, aattrs []string) bool {
+func (l *Lattice) Allow(pattrs, aattrs []string) bool {
 	for _, aattr := range aattrs {
 		allowed := false
 		for _, pattr := range pattrs {
@@ -216,7 +219,7 @@ func (l Lattice) Allow(pattrs, aattrs []string) bool {
 }
 
 // overlap of attributes in policy and annotations (Tₓ ⨅ T'ₓ from paper)
-func (l Lattice) overlap(pattrs, aattrs []string) []string {
+func (l *Lattice) overlap(pattrs, aattrs []string) []string {
 	res := make([]string, 0)
 	if len(aattrs) == 0 {
 		return res
@@ -236,7 +239,7 @@ func (l Lattice) overlap(pattrs, aattrs []string) []string {
 }
 
 // Deny policy clause T[c] applies (⊥ ∉ Tₓ from paper)
-func (l Lattice) Deny(pattrs, aattrs []string) bool {
+func (l *Lattice) Deny(pattrs, aattrs []string) bool {
 	overlaps := l.overlap(pattrs, aattrs)
 	for _, ol := range overlaps {
 		if ol == "BOTTOM" {
