@@ -27,7 +27,7 @@ func main() {
 			"UniqueID": ["AccountID", "IPAddress"],
 			"Location": ["IPAddress"] }
 		}`)
-	fmt.Println(dt)
+	fmt.Printf("%+v\n", dt)
 
 	// 2. define a policy instance based on above lattice
 	//
@@ -36,7 +36,7 @@ func main() {
 	policy := grok.NewPolicy([]*grok.Lattice{dt})
 	policy.ParsePolicy(`ALLOW DataType TOP
 		EXCEPT { DENY DataType IPAddress DataType AccountID }`)
-	fmt.Println(policy)
+	fmt.Printf("%+v\n", policy)
 
 	// case 1:
 	// a graph node with label "DataType IPAddress", will be allowed by the policy

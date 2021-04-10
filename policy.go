@@ -12,6 +12,9 @@ type PolicyMode bool
 const (
 	ALLOW PolicyMode = true
 	DENY  PolicyMode = false
+	Allow   = "ALLOW"
+	Deny    = "DENY"
+	Except  = "EXCEPT"
 )
 
 func (pm PolicyMode) String() string {
@@ -25,15 +28,17 @@ func (pm PolicyMode) String() string {
 	}
 }
 
-// pair: exmaple: DataType IPAddrees
+// pair is an pair of attribute name and attribute value. exmaple: DataType IPAddrees
 type pair struct {
 	name  string // attribute name (i.e. lattice)
 	value string // attribute value (picked from lattice elements)
 }
 
-// Clause: there may be duplicate attributes in one policy clause
+// Clause is a slice of pairs.
+// There may be duplicate attributes in a policy clause, e.g. DataType IPAddress DataType AccountID
 type Clause []pair
 
+// ValuesOf returns the attribute values of a Clause when its attribute name is attr
 func (c Clause) ValuesOf(attr string) []string {
 	values := make([]string, 0)
 	for _, p := range c {
@@ -44,14 +49,15 @@ func (c Clause) ValuesOf(attr string) []string {
 	return values
 }
 
-// Annotation: an alias for clause, used as metadata in flow node
+// Annotation is an alias of Clause, which is used as metadata of a program block
 type Annotation Clause
 
+// ValuesOf
 func (an Annotation) ValuesOf(attr string) []string {
 	return Clause(an).ValuesOf(attr)
 }
 
-// policy definition based on lattice definitions
+// Policy is composed of its mode, clause, and exceptions. It is based on some lattices.
 type Policy struct {
 	Mode    PolicyMode
 	Clause
@@ -73,6 +79,7 @@ func NewPolicy(ls []*Lattice) *Policy {
 	return policy
 }
 
+// checkBaseOn checks the dependant lattices that are mandatory for a Policy
 func (p *Policy) checkBaseOn() {
 	if p.baseOn == nil || len(p.baseOn) == 0 {
 		fmt.Println("policy has no lattices")
@@ -101,6 +108,7 @@ func (p *Policy) ParsePolicy(pstr string) error {
 	return nil
 }
 
+// parsePolicyTokens parses a slice of tokens to a Policy
 func (p *Policy) parsePolicyTokens(ts []string) Policy {
 	policy := new(Policy)
 	policy.baseOn = p.baseOn
@@ -108,15 +116,15 @@ func (p *Policy) parsePolicyTokens(ts []string) Policy {
 
 	n := len(ts)
 	pi := 0
-	if "ALLOW" == ts[0] || "DENY" == ts[0] {
-		policy.Mode = "ALLOW" == ts[0]
+	if Allow == ts[0] || Deny == ts[0] {
+		policy.Mode = Allow == ts[0]
 		pi = 1
 	} else {
 		fmt.Println("policy clause must start with ALLOW or DENY.")
 	}
 
 	i := 1
-	for i < n && "EXCEPT" != ts[i] {
+	for i < n && Except != ts[i] {
 		i++
 	}
 	tt := ts[pi:i]
@@ -129,9 +137,9 @@ func (p *Policy) parsePolicyTokens(ts []string) Policy {
 		}
 		var mode string
 		if policy.Mode {
-			mode = "DENY"
+			mode = Deny
 		} else {
-			mode = "ALLOW"
+			mode = Allow
 		}
 		pi = i + 2
 		if ts[i+2] != mode {
@@ -163,6 +171,7 @@ func (p *Policy) parsePolicyTokens(ts []string) Policy {
 	return *policy
 }
 
+// ParseClause returns a Clause instance after parsing a string
 func (p *Policy) ParseClause(str string) Clause {
 	p.checkBaseOn()
 
@@ -181,10 +190,12 @@ func (p *Policy) ParseClause(str string) Clause {
 	return p.parseClauseTokens(tokens)
 }
 
+// ParseAnnotation returns an Annotation instance after parsing a string
 func (p *Policy) ParseAnnotation(str string) Annotation {
 	return Annotation(p.ParseClause(str))
 }
 
+// parseClauseTokens returns a Clause instance after parsing a slice of tokens
 func (p *Policy) parseClauseTokens(ts []string) Clause {
 	var clause Clause = make(Clause, 0)
 	var currLa string
@@ -209,10 +220,10 @@ func (p *Policy) parseClauseTokens(ts []string) Clause {
 	return clause
 }
 
-// ApplyOn: whether a policy can apply on an annotation
+// ApplyOn decides whether a policy can apply on an annotation
 // true means annotation is allowed by the policy
 // false means annotation is denied by the policy
-// note: refer to inferences rules in page 7
+// Note: refer to inferences rules in page 7
 func (p *Policy) ApplyOn(an Annotation) bool {
 	if p.Mode {
 		for attr, l := range p.baseOn {
@@ -252,6 +263,7 @@ func (p *Policy) ApplyOn(an Annotation) bool {
 	}
 }
 
+// LatticeName returns a valid lattice name, or returns error
 func (p *Policy) LatticeName(s string) (string, error) {
 	for _, l := range p.baseOn {
 		if s == l.Name {
@@ -261,6 +273,7 @@ func (p *Policy) LatticeName(s string) (string, error) {
 	return "", errors.New(fmt.Sprintf("%s is not a valid lattice name", s))
 }
 
+// LatticeValue returns a valid lattice value from its a dependant lattice, or returns error
 func (p *Policy) LatticeValue(s string, name string) (string, error) {
 	for _, e := range p.baseOn[name].Edges {
 		if s == e.From || s == e.To {

@@ -63,6 +63,7 @@ func TestChildrenOf(t *testing.T) {
 	}{
 		{[]string{"TOP"},      []string{"Location", "UniqueID"}},
 		{[]string{"Location"}, []string{"IPAddress"}},
+		{[]string{"Location", "UniqueID"}, []string{"AccountID", "IPAddress"}},
 	}
 	for _, c := range cases {
 		got := lattice.childrenOf(c.parents)
@@ -79,6 +80,7 @@ func TestMeet(t *testing.T) {
 		want string
 	}{
 		{"AccountID", "UniqueID", "AccountID"},
+		{"UniqueID", "AccountID", "AccountID"},
 		{"AccountID", "TOP",      "AccountID"},
 		{"AccountID", "Location", "BOTTOM"},
 	}
