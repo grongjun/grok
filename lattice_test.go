@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+
 var lattice = NewLattice(
 	`{
 		"name": "DataType",
@@ -23,6 +24,7 @@ func TestNewLattice(t *testing.T) {
 	}{
 		{"name",       lattice.Name,       "DataType"},
 		{"len(edges)", len(lattice.Edges), 7},
+		{"state.name", lattice.state.Name,	"TypeState"},
 	}
 	for _, c := range cases {
 		if c.value != c.want {
@@ -83,6 +85,8 @@ func TestMeet(t *testing.T) {
 		{"UniqueID", "AccountID", "AccountID"},
 		{"AccountID", "TOP",      "AccountID"},
 		{"AccountID", "Location", "BOTTOM"},
+		{"AccountID:Truncated", "UniqueID", "AccountID:Truncated"},
+		{"AccountID:Truncated", "UniqueID:Redacted", "AccountID:Redacted"},
 	}
 	for _, c := range cases {
 		got := lattice.Meet(c.a, c.b)
@@ -117,6 +121,7 @@ func TestJoin(t *testing.T) {
 		{"AccountID", "UniqueID", "UniqueID"},
 		{"AccountID", "TOP",      "TOP"},
 		{"AccountID", "Location", "TOP"},
+		{"AccountID:Truncated", "UniqueID:Redacted", "UniqueID:Truncated"},
 	}
 	for _, c := range cases {
 		got := lattice.Join(c.a, c.b)
@@ -135,6 +140,8 @@ func TestPrecede(t *testing.T) {
 		{"AccountID", "Location", false},
 		{"AccountID", "UniqueID", true},
 		{"AccountID", "TOP",      true},
+		{"AccountID:Truncated", "UniqueID:Redacted",  false},
+		{"UniqueID:Redacted", "AccountID:Truncated",  false},
 	}
 	for _, c := range cases {
 		got := lattice.Precede(c.a, c.b)
@@ -152,6 +159,8 @@ func TestAllow(t *testing.T) {
 	}{
 		{[]string{"IPAddress", "AccountID"}, []string{"IPAddress"}, true},
 		{[]string{"IPAddress"},              []string{"TOP"},       false},
+		{[]string{"UniqueID:Hashed"},        []string{"UniqueID"},  false},
+		{[]string{"UniqueID"},               []string{"UniqueID:Hashed"},  true},
 	}
 	for _, c := range cases {
 		got := lattice.Allow(c.pattrs, c.aattrs)
@@ -170,6 +179,7 @@ func TestOverlap(t *testing.T) {
 		{[]string{"IPAddress", "AccountID"}, []string{"IPAddress"},              []string{"IPAddress", "BOTTOM"}},
 		{[]string{"IPAddress", "AccountID"}, []string{"IPAddress", "AccountID"}, []string{"IPAddress", "AccountID"}},
 		{[]string{"IPAddress"},              []string{"IPAddress", "AccountID"}, []string{"IPAddress"}},
+		{[]string{"UniqueID:Encrypted"},     []string{"UniqueID:Hashed"},        []string{"UniqueID:BOTTOM"} },
 	}
 	for _, c := range cases {
 		got := lattice.overlap(c.pattrs, c.aattrs)
@@ -187,6 +197,9 @@ func TestDeny(t *testing.T) {
 	}{
 		{[]string{"IPAddress", "AccountID"}, []string{"IPAddress"},              false},
 		{[]string{"IPAddress", "AccountID"}, []string{"IPAddress", "AccountID"}, true},
+		{[]string{"UniqueID:Hashed"},        []string{"UniqueID"},               true},
+		{[]string{"UniqueID"},               []string{"UniqueID:Hashed"},        true},
+		{[]string{"UniqueID:Encrypted"},     []string{"UniqueID:Hashed"},        false},
 	}
 	for _, c := range cases {
 		got := lattice.Deny(c.pattrs, c.aattrs)
@@ -231,6 +244,16 @@ func equals(a []string, b []string) bool {
 
 func setup() {
 	fmt.Println("setup")
+	var state = NewLattice(`{
+		"name": "TypeState",
+		"edges": {
+			"Encrypted": [],
+			"Hashed": [],
+			"Truncated": ["Redacted"]
+		}
+	}`)
+	// for all cases, set the state for DataType lattice.
+	lattice.Product(state)
 }
 
 func shutdown() {

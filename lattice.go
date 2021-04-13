@@ -13,7 +13,13 @@ type Edge struct {
 
 type Lattice struct {
 	Name  string
+	// Edges are the edge collections in lattice structure
 	Edges []Edge
+	// state is used to run cartesian product with current lattice. It can be seen
+	// as the state of current lattice. For example, IPAddress:Truncated is a product
+	// of two lattices, where IPAddress is from DataType lattice, and Truncated is
+	// from TypeState lattice.
+	state *Lattice
 }
 
 const (
@@ -113,7 +119,7 @@ func parse(m map[string]interface{}) Lattice {
 		edges = append(edges, Edge{Top, se}, Edge{se, Bottom})
 	}
 
-	return Lattice{name, edges}
+	return Lattice{name, edges, nil}
 }
 
 
@@ -131,8 +137,46 @@ func (l *Lattice) childrenOf(nodes []string) []string {
 	return ch
 }
 
+// Product sets its state lattice for current lattice. And the lattice still 
+// keeps its behaviour as a single lattice
+func (l *Lattice) Product(la *Lattice) {
+	if la != nil {
+		l.state = la
+	}
+}
+
+func (l *Lattice) isProductValue(a string) bool {
+	return l.state != nil && strings.ContainsRune(a, ':')
+}
+
+func (l *Lattice) halve(a string) (string, string) {
+	if strings.ContainsRune(a, ':') {
+		parts := strings.Split(a, ":")
+		// assert len(parts) == 2
+		return parts[0], parts[1]
+	} else {
+		return a, Top
+	}
+}
+
+func (l *Lattice) combine(a, b string) string {
+	if b == Top {
+		return a
+	} else {
+		return a + ":" + b
+	}
+}
+
+
 // Meet returns greated lower bound (infimum, a ^ b) of two elements a and b
 func (l *Lattice) Meet(a, b string) string {
+	// Meet operation for producted lattice
+	if l.isProductValue(a) || l.isProductValue(b) {
+		fsta, snda := l.halve(a)
+		fstb, sndb := l.halve(b)
+		return l.combine(l.Meet(fsta, fstb), l.state.Meet(snda, sndb))
+	}
+
 	nodea := []string{a}
 	nodeb := []string{b}
 	res := make([]string, 0)
@@ -171,6 +215,13 @@ func (l *Lattice) parentsOf(nodes []string) []string {
 
 // Join returns the least upper bound (supremum, a ∨ b) of two elements a and b
 func (l *Lattice) Join(a, b string) string {
+	// Join operation for producted lattice
+	if l.isProductValue(a) || l.isProductValue(b) {
+		fsta, snda := l.halve(a)
+		fstb, sndb := l.halve(b)
+		return l.combine(l.Join(fsta, fstb), l.state.Join(snda, sndb))
+	}
+
 	nodea := []string{a}
 	nodeb := []string{b}
 	res := make([]string, 0)
@@ -197,6 +248,13 @@ func (l *Lattice) Join(a, b string) string {
 // is defined in Lattice.
 // The result will be true if a precede b, false for otherwise
 func (l *Lattice) Precede(a, b string) bool {
+	// Precede operation for producted lattice
+	if l.isProductValue(a) || l.isProductValue(b) {
+		fsta, snda := l.halve(a)
+		fstb, sndb := l.halve(b)
+		return l.Precede(fsta, fstb) && l.state.Precede(snda, sndb)
+	}
+
 	chb := []string{b}   // b and its children
 
 	for {
@@ -251,8 +309,15 @@ func (l *Lattice) overlap(pattrs, aattrs []string) []string {
 func (l *Lattice) Deny(pattrs, aattrs []string) bool {
 	overlaps := l.overlap(pattrs, aattrs)
 	for _, ol := range overlaps {
-		if ol == Bottom {
-			return false
+		if l.isProductValue(ol) {
+			fst, snd := l.halve(ol)
+			if (fst == Bottom || snd == Bottom) {
+				return false
+			}
+		} else {
+			if ol == Bottom {
+				return false
+			}
 		}
 	}
 	return true

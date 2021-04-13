@@ -29,6 +29,19 @@ func main() {
 		}`)
 	fmt.Printf("%+v\n", dt)
 
+	ts := grok.NewLattice(`{
+		"name": "TypeState",
+		"edges": {
+			"Encrypted": [],
+			"Hashed": [],
+			"Truncated": ["Redacted"]
+		}
+	}`)
+	// Product of DataType and TypeState lattice
+	dt.Product(ts)
+
+	fmt.Printf("%+v\n", dt)
+
 	// 2. define a policy instance based on above lattice
 	//
 	// ALLOW DataType TOP EXCEPT { DENY DataType IPAddress DataType AccountID }
