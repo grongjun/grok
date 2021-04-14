@@ -53,12 +53,20 @@ func main() {
 
 	// case 1:
 	// a graph node with label "DataType IPAddress", will be allowed by the policy
-	r1 := policy.ApplyOn(policy.ParseAnnotation(`DataType IPAddress`))
+	a1, err := policy.ParseAnnotation(`DataType IPAddress`)
+	if err != nil {
+		fmt.Println(err)
+	}
+	r1 := policy.ApplyOn(a1)
 	fmt.Println(r1) // true
 
 	// case 2
 	// a graph node with label "DataType IPAddress DataType AccountID", will be denied by the policy
-	r2 := policy.ApplyOn(policy.ParseAnnotation(`DataType IPAddress DataType AccountID`))
+	a2, err := policy.ParseAnnotation(`DataType IPAddress DataType AccountID`)
+	if err != nil {
+		fmt.Println(err)
+	}
+	r2 := policy.ApplyOn(a2)
 	fmt.Println(r2) // false
 
 }

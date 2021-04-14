@@ -7,26 +7,15 @@ import (
 	"text/scanner"
 )
 
-type PolicyMode bool
-
 const (
-	ALLOW PolicyMode = true
-	DENY  PolicyMode = false
-	Allow   = "ALLOW"
-	Deny    = "DENY"
-	Except  = "EXCEPT"
+	ALLOW      = true
+	DENY       = false
+	Allow      = "ALLOW"
+	Deny       = "DENY"
+	Except     = "EXCEPT"
+	lefBrace   = "{"
+	rightBrace = "}"
 )
-
-func (pm PolicyMode) String() string {
-	switch pm {
-	case ALLOW:
-		return "Allow"
-	case DENY:
-		return "Deny"
-	default:
-		panic("invalid policy mode")
-	}
-}
 
 // pair is an pair of attribute name and attribute value. exmaple: DataType IPAddrees
 type pair struct {
@@ -59,7 +48,7 @@ func (an Annotation) ValuesOf(attr string) []string {
 
 // Policy is composed of its mode, clause, and exceptions. It is based on some lattices.
 type Policy struct {
-	Mode    PolicyMode
+	Mode    bool
 	Clause
 	Excepts []Policy
 	baseOn  map[string]*Lattice
@@ -67,6 +56,10 @@ type Policy struct {
 
 // NewPolicy creates a Policy instance based on some lattices.
 func NewPolicy(ls []*Lattice) *Policy {
+	// checks the dependant lattices that are mandatory for a Policy
+	if ls == nil || len(ls) == 0 {
+		panic("policy: input lattices should not be empty")
+	}
 	policy := new(Policy)
 	policy.Clause = make([]pair, 0)
 	policy.Excepts = make([]Policy, 0)
@@ -79,17 +72,8 @@ func NewPolicy(ls []*Lattice) *Policy {
 	return policy
 }
 
-// checkBaseOn checks the dependant lattices that are mandatory for a Policy
-func (p *Policy) checkBaseOn() {
-	if p.baseOn == nil || len(p.baseOn) == 0 {
-		fmt.Println("policy has no lattices")
-	}
-}
-
 // ParsePolicy parses a policy string
 func (p *Policy) ParsePolicy(pstr string) error {
-	p.checkBaseOn()
-
 	var s scanner.Scanner
 	s.Init(strings.NewReader(pstr))
 
@@ -101,7 +85,10 @@ func (p *Policy) ParsePolicy(pstr string) error {
 		tokens = append(tokens, tt)
 	}
 
-	pp := p.parsePolicyTokens(tokens)
+	pp, err := p.parsePolicyTokens(tokens)
+	if err != nil {
+		return err
+	}
 	p.Mode = pp.Mode
 	p.Clause = pp.Clause
 	p.Excepts = pp.Excepts
@@ -109,32 +96,36 @@ func (p *Policy) ParsePolicy(pstr string) error {
 }
 
 // parsePolicyTokens parses a slice of tokens to a Policy
-func (p *Policy) parsePolicyTokens(ts []string) Policy {
-	policy := new(Policy)
-	policy.baseOn = p.baseOn
-	policy.Excepts = make([]Policy, 0)
-
+func (p *Policy) parsePolicyTokens(ts []string) (Policy, error) {
 	n := len(ts)
 	pi := 0
+	// the first token must be ALLOW or DENY
+	policy := Policy{}
 	if Allow == ts[0] || Deny == ts[0] {
 		policy.Mode = Allow == ts[0]
 		pi = 1
 	} else {
-		fmt.Println("policy clause must start with ALLOW or DENY.")
+		return policy, errors.New("policy: don't start with ALLOW or DENY")
 	}
 
 	i := 1
+	// The tokens between ALLOW/DENY and EXCEPT are the main content of current policy's clause
 	for i < n && Except != ts[i] {
 		i++
 	}
 	tt := ts[pi:i]
-	policy.Clause = p.parseClauseTokens(tt)
+	clause, err := p.parseClauseTokens(tt)
+	if err != nil {
+		return policy, err
+	}
+	policy.Clause = clause
 
-	// there must be except clauses, try to find it/them
+	// There must be except clauses if i < n
 	if i < n {
-		if ts[i+1] != "{" || ts[n-1] != "}" {
-			fmt.Println("The except cluase must be warpped by {}")
+		if ts[i+1] != lefBrace || ts[n-1] != rightBrace {
+			return policy, errors.New("policy: except clause isn't warpped by { and }")
 		}
+		// the mode of except clauses must be the opposite of policy's main clause
 		var mode string
 		if policy.Mode {
 			mode = Deny
@@ -143,15 +134,17 @@ func (p *Policy) parsePolicyTokens(ts []string) Policy {
 		}
 		pi = i + 2
 		if ts[i+2] != mode {
-			fmt.Println("The except clause should have the opposite mode.")
+			return policy, errors.New("policy: except clause doesn't have the opposite mode")
 		}
 		depth := 0
 		i = i + 3 // skip the { and mode
+
+		excepts := make([]Policy, 0)
 		for i < n-1 {
-			if ts[i] == "{" {
+			if ts[i] == lefBrace {
 				depth++
 			}
-			if ts[i] == "}" {
+			if ts[i] == rightBrace {
 				depth--
 			}
 			// first condition: for multiple exceptions
@@ -160,21 +153,24 @@ func (p *Policy) parsePolicyTokens(ts []string) Policy {
 				if i == n-2 {
 					i++
 				}
-				policy.Excepts = append(policy.Excepts, p.parsePolicyTokens(ts[pi:i]))
+				po, err := p.parsePolicyTokens(ts[pi:i])
+				if err != nil {
+					return policy, err
+				}
+				excepts = append(excepts, po)
 				pi = i
 			}
-
 			i++
 		}
+		policy.Excepts = excepts
 	}
 
-	return *policy
+	policy.baseOn = p.baseOn
+	return policy, nil
 }
 
 // ParseClause returns a Clause instance after parsing a string
-func (p *Policy) ParseClause(str string) Clause {
-	p.checkBaseOn()
-
+func (p *Policy) ParseClause(str string) (Clause, error) {
 	var s scanner.Scanner
 	s.Init(strings.NewReader(str))
 
@@ -183,41 +179,45 @@ func (p *Policy) ParseClause(str string) Clause {
 		tt := s.TokenText()
 		tokens = append(tokens, tt)
 	}
-	if len(tokens)%2 != 0 {
-		fmt.Println("clause is composed of name-value pairs.")
+	if len(tokens) % 2 != 0 {
+		return nil, errors.New("policy: clause is not composed of name-value pairs")
 	}
 
 	return p.parseClauseTokens(tokens)
 }
 
 // ParseAnnotation returns an Annotation instance after parsing a string
-func (p *Policy) ParseAnnotation(str string) Annotation {
-	return Annotation(p.ParseClause(str))
+func (p *Policy) ParseAnnotation(str string) (Annotation, error) {
+	clause, err := p.ParseClause(str)
+	if err != nil {
+		return nil, err
+	}
+	return Annotation(clause), nil
 }
 
 // parseClauseTokens returns a Clause instance after parsing a slice of tokens
-func (p *Policy) parseClauseTokens(ts []string) Clause {
+func (p *Policy) parseClauseTokens(ts []string) (Clause, error) {
 	var clause Clause = make(Clause, 0)
+	
+	// current lattice name
 	var currLa string
 	for _, tt := range ts {
 		if "" == currLa {
 			la, err := p.LatticeName(tt)
 			if err != nil {
-				fmt.Println(err)
+				return nil, err
 			}
 			currLa = la
-			// fmt.Println(la)
 		} else {
 			lv, err := p.LatticeValue(tt, currLa)
 			if err != nil {
-				fmt.Println(err)
+				return nil , err
 			}
-			// fmt.Printf("[%s = %s]\n", currLa, lv)
 			clause = append(clause, pair{currLa, lv})
 			currLa = ""
 		}
 	}
-	return clause
+	return clause, nil
 }
 
 // ApplyOn decides whether a policy can apply on an annotation
@@ -270,7 +270,7 @@ func (p *Policy) LatticeName(s string) (string, error) {
 			return l.Name, nil
 		}
 	}
-	return "", errors.New(fmt.Sprintf("%s is not a valid lattice name", s))
+	return "", errors.New(fmt.Sprintf("policy: %s is not a valid lattice name", s))
 }
 
 // LatticeValue returns a valid lattice value from its a dependant lattice, or returns error
@@ -280,5 +280,5 @@ func (p *Policy) LatticeValue(s string, name string) (string, error) {
 			return s, nil
 		}
 	}
-	return "", errors.New(fmt.Sprintf("%s is not a valid value in lattice %s", s, name))
+	return "", errors.New(fmt.Sprintf("policy: %s is not a valid value in lattice %s", s, name))
 }

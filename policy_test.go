@@ -15,7 +15,10 @@ var lattices []*Lattice = []*Lattice{
 var policy = NewPolicy(lattices)
 
 func TestParseClause(t *testing.T) {
-	clause := policy.ParseClause(`DataType IPAddress Purpose Sharing`)
+	clause, err := policy.ParseClause(`DataType IPAddress Purpose Sharing`)
+	if err != nil {
+		t.Errorf("%q\n", err)
+	}
 
 	cases := []struct {
 		name  string
@@ -37,7 +40,7 @@ func TestParseClause(t *testing.T) {
 
 func TestParsePolicy1(t *testing.T) {
 	if err := policy.ParsePolicy(`DENY DataType IPAddress`); err != nil {
-		t.Errorf("%q", err)
+		t.Errorf("%q\n", err)
 	}
 	cases := []struct {
 		name  string
@@ -204,7 +207,10 @@ func TestApplyOn(t *testing.T) {
 		if err := policy.ParsePolicy(c.pstr); err != nil {
 			t.Errorf("%q", err)
 		}
-		an := policy.ParseAnnotation(c.astr)
+		an, err := policy.ParseAnnotation(c.astr)
+		if err != nil {
+			t.Errorf("%q\n", err)
+		}
 		if policy.ApplyOn(an) != c.applyOn {
 			t.Errorf("Apply [%q] on [%q]: %t, want %t", c.pstr, c.astr, !c.applyOn, c.applyOn)
 		}
