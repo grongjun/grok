@@ -190,9 +190,16 @@ func (l *Lattice) Meet(a, b string) string {
 				res = append(res, e)
 			}
 		}
-		if len(res) != 1 {
-			nodea, nodeb = nodeb, append(nodea, l.childrenOf(nodea)...)
+		if len(res) == 0 {
+			ch := l.childrenOf(nodea)
+			nodea, nodeb = nodeb, append(nodea,
+				filter(ch, func(a string) bool { return !contains(nodea, a) })...)
 		} else {
+			if len(res) > 1 {
+				sort.Slice(res, func(p, q int) bool {
+					return l.Precede(res[p], res[q])
+				})
+			}
 			break
 		}
 	}
@@ -235,9 +242,16 @@ func (l *Lattice) Join(a, b string) string {
 				res = append(res, e)
 			}
 		}
-		if len(res) != 1 {
-			nodea, nodeb = nodeb, append(nodea, l.parentsOf(nodea)...)
+		if len(res) == 0 {
+			pa := l.parentsOf(nodea)
+			nodea, nodeb = nodeb, append(nodea,
+				filter(pa, func(a string) bool { return !contains(nodea, a) })...)
 		} else {
+			if len(res) > 1 {
+				sort.Slice(res, func(p, q int) bool {
+					return l.Precede(res[p], res[q])
+				})
+			}
 			break
 		}
 	}
@@ -332,3 +346,16 @@ func contains(arr []string, str string) bool {
 	}
 	return false
 }
+
+func filter(arr []string, fn func(string) bool) []string {
+	f := make([]string, 0)
+	for _, a := range arr {
+		if fn(a) {
+			f = append(f, a)
+		}
+	}
+	return f
+}
+
+
+

@@ -12,6 +12,7 @@ var lattice = NewLattice(
 		"name": "DataType",
 		"edges": {
 			"UniqueID": ["AccountID", "IPAddress"],
+			"Birthday": [],
 			"Location": ["IPAddress"]
 		}
 	}`)
@@ -23,7 +24,7 @@ func TestNewLattice(t *testing.T) {
 		want  interface{}
 	}{
 		{"name",       lattice.Name,       "DataType"},
-		{"len(edges)", len(lattice.Edges), 7},
+		{"len(edges)", len(lattice.Edges), 9},
 		{"state.name", lattice.state.Name,	"TypeState"},
 	}
 	for _, c := range cases {
@@ -63,7 +64,7 @@ func TestChildrenOf(t *testing.T) {
 		parents  []string
 		children []string
 	}{
-		{[]string{"TOP"},      []string{"Location", "UniqueID"}},
+		{[]string{"TOP"},      []string{"Birthday", "Location", "UniqueID"}},
 		{[]string{"Location"}, []string{"IPAddress"}},
 		{[]string{"Location", "UniqueID"}, []string{"AccountID", "IPAddress"}},
 	}
@@ -81,10 +82,10 @@ func TestMeet(t *testing.T) {
 		b    string
 		want string
 	}{
-		{"AccountID", "UniqueID", "AccountID"},
-		{"UniqueID", "AccountID", "AccountID"},
-		{"AccountID", "TOP",      "AccountID"},
-		{"AccountID", "Location", "BOTTOM"},
+		{"AccountID", "UniqueID",  "AccountID"},
+		{"UniqueID",  "AccountID", "AccountID"},
+		{"AccountID", "TOP",       "AccountID"},
+		{"AccountID", "Location",  "BOTTOM"},
 		{"AccountID:Truncated", "UniqueID", "AccountID:Truncated"},
 		{"AccountID:Truncated", "UniqueID:Redacted", "AccountID:Redacted"},
 	}
@@ -121,6 +122,7 @@ func TestJoin(t *testing.T) {
 		{"AccountID", "UniqueID", "UniqueID"},
 		{"AccountID", "TOP",      "TOP"},
 		{"AccountID", "Location", "TOP"},
+		{"UniqueID",  "BOTTOM",   "UniqueID"},
 		{"AccountID:Truncated", "UniqueID:Redacted", "UniqueID:Truncated"},
 	}
 	for _, c := range cases {
